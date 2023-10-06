@@ -510,7 +510,7 @@ namespace argparse {
     /* parse all parameters and also check for the help_flag which was set in this constructor
      * Upon error, it will print the error and exit immediately if validation_action is ValidationAction::EXIT_ON_ERROR
      */
-    bool parse(int argc, const char* const* argv, const bool& raise_on_error) {
+    void parse(int argc, const char* const* argv, bool raise_on_error) {
       auto parse_subcommands = [&]() -> int {
         for (int i = 1; i < argc; i++) {
           for (auto& [subcommand, subentry] : subcommand_entries) {
@@ -525,9 +525,11 @@ namespace argparse {
       argc = parse_subcommands();  // argc_ is the number of arguments that should be parsed after the subcommand has finished
                                    // parsing
 
-      program_name   = std::filesystem::path(argv[0]).stem().string();
-      params         = std::vector<std::string>(argv + 1, argv + argc);
+      program_name = std::filesystem::path(argv[0]).stem().string();
+      params       = std::vector<std::string>(argv + 1, argv + argc);
+    }
 
+    bool build(bool raise_on_error) {
       bool& _help    = flag("?,help", "print help");
 
       auto  is_value = [&](const size_t& i) -> bool {
@@ -638,9 +640,9 @@ namespace argparse {
     void print() const {
       for (const auto& entry : all_entries) {
         std::string snip = entry->type == Entry::ARG
-                               ? "(" + (entry->help.size() > 10 ? entry->help.substr(0, 7) + "..." : entry->help) + ")"
+                               ? "(" + (entry->help.size() > 20 ? entry->help.substr(0, 17) + "..." : entry->help) + ")"
                                : "";
-        cout << /*setw(21) <<*/ entry->_get_keys() + snip << " : "
+        cout << setw(26) << entry->_get_keys() + snip << " : "
              << (entry->is_set_by_user ? bold(entry->value_.value_or("null")) : entry->value_.value_or("null")) << endl;
       }
 
