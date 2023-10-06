@@ -1,0 +1,119 @@
+//
+// Created by iskakoff on 10/4/23.
+//
+#include <catch2/catch_test_macros.hpp>
+
+#include "green/params/params_t.h"
+
+using namespace std::string_literals;
+
+enum myenum { BLACK, GREEN, YELLOW };
+
+std::pair<int, char**> get_argc_argv(std::string& str) {
+  std::string        key;
+  std::vector<char*> splits = {(char*)str.c_str()};
+  for (int i = 1; i < str.size(); i++) {
+    if (str[i] == ' ') {
+      str[i] = '\0';
+      splits.emplace_back(&str[++i]);
+    }
+  }
+  char** argv = new char*[splits.size()];
+  for (int i = 0; i < splits.size(); i++) {
+    argv[i] = splits[i];
+  }
+
+  return {(int)splits.size(), argv};
+}
+
+TEST_CASE("Params") {
+  SECTION("Test Init") {
+    auto p = green::params::params_t("DESCR");
+    REQUIRE(p.description() == "DESCR");
+  }
+
+  SECTION("Parse Parameters") {
+    auto        p     = green::params::params_t("DESCR");
+    std::string args  = "test --a 33";
+    auto [argc, argv] = get_argc_argv(args);
+    p.define<int>("a", "A value");
+    p.define<int>("b", "B value", 5);
+    p.define<int>("c", "C value");
+    p.parse(argc, argv);
+    int  a = p["a"];
+    long b = p["b"];
+    int  c;
+    REQUIRE(a == 33);
+    REQUIRE(b == 5);
+    REQUIRE_THROWS(c = p["c"]);
+  }
+
+  SECTION("Nonexisting INI File") {
+    auto        p     = green::params::params_t("DESCR");
+    std::string args  = "test --a 33 BLABLABLA";
+    auto [argc, argv] = get_argc_argv(args);
+    p.define<int>("a", "value");
+    REQUIRE_THROWS(p.parse(argc, argv));
+  }
+
+  SECTION("Parse Parameters from File") {
+    auto        p       = green::params::params_t("DESCR");
+    std::string inifile = TEST_PATH + "/test.ini"s;
+    std::string args    = "test " + inifile + " --a 33 BLABLABLA";
+    auto [argc, argv]   = get_argc_argv(args);
+    p.define<int>("AA", "value from file");
+    p.define<int>("AAA.AA", "value from file section", 5);
+    p.parse(argc, argv);
+    int  a = p["AA"];
+    long b = p["AAA.AA"];
+    REQUIRE(a == 123);
+    REQUIRE(b == 345);
+  }
+
+  SECTION("Nonexisting Argument") {
+    auto        p     = green::params::params_t("DESCR");
+    std::string args  = "test --a 33";
+    auto [argc, argv] = get_argc_argv(args);
+    p.define<int>("a", "value");
+    REQUIRE_THROWS(p["b"]);
+  }
+
+  SECTION("Redefine Parameters from File") {
+    auto        p       = green::params::params_t("DESCR");
+    std::string inifile = TEST_PATH + "/test.ini"s;
+    std::string args    = "test " + inifile + " --AA 33 --AAA.AA=4";
+    auto [argc, argv]   = get_argc_argv(args);
+    p.define<int>("AA", "value from file");
+    p.define<int>("AAA.AA", "value from file section", 5);
+    p.parse(argc, argv);
+    int  a = p["AA"];
+    long b = p["AAA.AA"];
+    REQUIRE(a == 33);
+    REQUIRE(b == 4);
+  }
+
+  SECTION("Different Types") {
+    auto        p       = green::params::params_t("DESCR");
+    std::string inifile = TEST_PATH + "/test.ini"s;
+    std::string args    = "test " + inifile;
+    auto [argc, argv]   = get_argc_argv(args);
+    p.define<std::string>("STRING.X", "value from file");
+    p.define<std::string>("STRING.Y", "value from file section");
+    p.define<myenum>("ENUMTYPE", "value from file section", BLACK);
+    p.parse(argc, argv);
+    p.print();
+    std::string a = p["STRING.X"];
+    std::string b = p["STRING.Y"];
+    REQUIRE(a == "123456");
+    REQUIRE(b == "ALPHA");
+  }
+
+  SECTION("Help") {
+    auto        p       = green::params::params_t("DESCR");
+    std::string inifile = TEST_PATH + "/test.ini"s;
+    std::string args    = "test -?";  // + inifile;
+    auto [argc, argv]   = get_argc_argv(args);
+    p.define<myenum>("ENUMTYPE", "value from file section", BLACK);
+    REQUIRE_FALSE(p.parse(argc, argv));
+  }
+}

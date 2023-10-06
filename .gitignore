@@ -1,3 +1,9 @@
+# Build directories
+*build*/
+
+# IDE directories
+.idea/*
+
 # Prerequisites
 *.d
 
