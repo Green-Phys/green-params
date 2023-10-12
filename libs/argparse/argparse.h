@@ -107,6 +107,13 @@ namespace argparse {
   }
 
   template <typename T>
+  std::string to_upper(const T& str_) {  // both std::string and std::basic_string_view<char> (for magic_enum) are using to_upper
+    std::string str(str_.size(), '\0');
+    std::transform(str_.begin(), str_.end(), str.begin(), ::toupper);
+    return str;
+  }
+
+  template <typename T>
   inline T get(const std::string& v);
   template <>
   inline std::string get(const std::string& v) {
@@ -132,7 +139,7 @@ namespace argparse {
   }
   template <>
   inline bool get(const std::string& v) {
-    return to_lower(v) == "true" || v == "1";
+    return to_lower(v) == "true" || to_lower(v) == "yes" || v == "1";
   }
   template <>
   inline float get(const std::string& v) {
@@ -180,7 +187,7 @@ namespace argparse {
         if (to_lower(name) == lower_str) return value;
       }
       std::string error = "enum is only accepting [";
-      for (size_t i = 0; i < enum_entries.size(); i++) error += (i == 0 ? "" : ", ") + to_lower(enum_entries[i].second);
+      for (size_t i = 0; i < enum_entries.size(); i++) error += (i == 0 ? "" : ", ") + to_upper(enum_entries[i].second);
       error += "]";
       throw std::runtime_error(error);
 #else
@@ -197,6 +204,7 @@ namespace argparse {
     virtual void set_default(const std::unique_ptr<ConvertBase>& default_value, const std::string& default_string) = 0;
     [[nodiscard]] virtual size_t      get_type_id() const                                                          = 0;
     [[nodiscard]] virtual std::string get_allowed_entries() const                                                  = 0;
+    [[nodiscard]] virtual std::string get_string_value(std::string def) const                                      = 0;
   };
 
   template <typename T>
@@ -224,12 +232,24 @@ namespace argparse {
 #ifdef HAS_MAGIC_ENUM
       if constexpr (std::is_enum<T>::value) {
         for (const auto& [value, name] : magic_enum::enum_entries<T>()) {
-          ss << to_lower(name) << ", ";
+          ss << to_upper(name) << ", ";
         }
       }
 #endif
 
       return ss.str();
+    }
+
+    [[nodiscard]] std::string get_string_value(std::string def) const override {
+      if constexpr (std::is_enum_v<T>) {
+#ifdef HAS_MAGIC_ENUM
+        return to_upper(std::string{magic_enum::enum_name<T>(data)});
+#else
+        return def;
+#endif
+      } else {
+        return def;
+      }
     }
   };
 
@@ -339,12 +359,15 @@ namespace argparse {
 
     [[nodiscard]] std::string info() const {
       const std::string allowed_entries = datap->get_allowed_entries();
-      const std::string default_value   = default_str_.has_value() ? "default: " + *default_str_ : "required";
-      const std::string implicit_value  = implicit_value_.has_value() ? "implicit: \"" + *implicit_value_ + "\", " : "";
+      const std::string default_value =
+          default_str_.has_value() ? "default: " + datap->get_string_value(*default_str_) : "required";
+      const std::string implicit_value = implicit_value_.has_value() ? "implicit: \"" + *implicit_value_ + "\", " : "";
       const std::string allowed_value =
           !allowed_entries.empty() ? "allowed: <" + allowed_entries.substr(0, allowed_entries.size() - 2) + ">, " : "";
       return " [" + allowed_value + implicit_value + default_value + "]";
     }
+
+    [[nodiscard]] std::string print() const { return datap->get_string_value(value_.value_or("null")); }
 
     friend class Args;
   };
@@ -379,6 +402,7 @@ namespace argparse {
     std::map<std::string, std::shared_ptr<Entry>>           kwarg_entries;
     std::vector<std::shared_ptr<Entry>>                     arg_entries;
     std::map<std::string, std::shared_ptr<SubcommandEntry>> subcommand_entries;
+    bool                                                    &_help = flag("?,help", "print help");
 
   public:
     std::string program_name;
@@ -478,13 +502,13 @@ namespace argparse {
       }
       cout << endl;
       for (const auto& entry : arg_entries) {
-        cout << setw(17) << entry->keys_[0] << " : " << entry->help << entry->info() << endl;
+        cout << setw(30) << entry->keys_[0] << " : " << entry->help << entry->info() << endl;
       }
 
       cout << endl << "Options:" << endl;
       for (const auto& entry : all_entries) {
         if (entry->type != Entry::ARG) {
-          cout << setw(17) << entry->_get_keys() << " : " << entry->help << entry->info() << endl;
+          cout << setw(30) << entry->_get_keys() << " : " << entry->help << entry->info() << endl;
         }
       }
 
@@ -530,9 +554,7 @@ namespace argparse {
     }
 
     bool build(bool raise_on_error) {
-      bool& _help    = flag("?,help", "print help");
-
-      auto  is_value = [&](const size_t& i) -> bool {
+      auto is_value = [&](const size_t& i) -> bool {
         return params.size() > i &&
                (params[i][0] != '-' ||
                 (params[i].size() > 1 &&
@@ -640,10 +662,10 @@ namespace argparse {
     void print() const {
       for (const auto& entry : all_entries) {
         std::string snip = entry->type == Entry::ARG
-                               ? "(" + (entry->help.size() > 20 ? entry->help.substr(0, 17) + "..." : entry->help) + ")"
+                               ? "(" + (entry->help.size() > 24 ? entry->help.substr(0, 21) + "..." : entry->help) + ")"
                                : "";
-        cout << setw(26) << entry->_get_keys() + snip << " : "
-             << (entry->is_set_by_user ? bold(entry->value_.value_or("null")) : entry->value_.value_or("null")) << endl;
+        cout << setw(30) << entry->_get_keys() + snip << " : " << (entry->is_set_by_user ? bold(entry->print()) : entry->print())
+             << endl;
       }
 
       for (const auto& [subcommand, subentry] : subcommand_entries) {

@@ -8,7 +8,7 @@
 
 using namespace std::string_literals;
 
-enum myenum { BLACK, GREEN, YELLOW };
+enum myenum { GREEN, BLACK, YELLOW };
 
 std::pair<int, char**> get_argc_argv(std::string& str) {
   std::string        key;
@@ -103,7 +103,6 @@ TEST_CASE("Params") {
     p.define<std::string>("STRING.Y", "value from file section");
     p.define<myenum>("ENUMTYPE", "value from file section", BLACK);
     p.parse(argc, argv);
-    p.print();
     std::string a = p["STRING.X"];
     std::string b = p["STRING.Y"];
     int c;
@@ -133,11 +132,12 @@ TEST_CASE("Params") {
     p.define<std::string>("STRING.X", "value from file");
     p.define<std::string>("STRING.Y", "value from file section");
     p.define<myenum>("ENUMTYPE", "value from file section", BLACK);
-    p.print();
     std::string a = p["STRING.X"];
     std::string b = p["STRING.Y"];
+    myenum x = p["ENUMTYPE"];
     REQUIRE(a == "123456");
     REQUIRE(b == "ALPHA");
+    REQUIRE(x == BLACK);
   }
 
   SECTION("Access Not Parsed") {

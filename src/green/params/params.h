@@ -102,7 +102,7 @@ namespace green::params {
      * @param description - name of the parameters (used for printing)
      */
     params(const std::string& description = "") : parsed_(false), built_(false), description_(description), inifile_(nullptr) {
-      inifile_ = &args_.arg_t<std::string>("Parameters INI File");
+      inifile_ = &args_.arg_t<std::string>("Parameters INI File").set_default("");
     }
 
     /**
@@ -193,7 +193,7 @@ namespace green::params {
     bool                                                          build() {
       bool help_requested = args_.build(false);
       if (help_requested) return true;
-      if (inifile_->has_value() && std::filesystem::exists(inifile_->string_value().value())) {
+      if (inifile_->has_value() && !inifile_->string_value().value().empty() && std::filesystem::exists(inifile_->string_value().value())) {
         INI::File ft;
         ft.Load(inifile_->string_value().value(), true);
         for (auto& [name, param] : parameters_map_) {
@@ -206,7 +206,7 @@ namespace green::params {
             param_val.update_entry(val.AsString());
           }
         }
-      } else if (inifile_->has_value()) {
+      } else if (inifile_->has_value() && !inifile_->string_value().value().empty()) {
         throw params_inifile_error("First positional argument should be a name of a valid parameter INI file. " +
                                                                                             inifile_->string_value().value());
       }
