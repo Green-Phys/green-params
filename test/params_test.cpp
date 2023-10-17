@@ -139,7 +139,7 @@ TEST_CASE("Params") {
     REQUIRE(b == "ALPHA");
     REQUIRE(x == BLACK);
   }
-
+#ifndef NDEBUG
   SECTION("Access Not Parsed") {
     auto        p       = green::params::params("DESCR");
     std::string inifile = TEST_PATH + "/test.ini"s;
@@ -151,4 +151,5 @@ TEST_CASE("Params") {
     REQUIRE_THROWS_AS(p.print(), green::params::params_notparsed_error);
     REQUIRE_THROWS_AS(p.help(), green::params::params_notparsed_error);
   }
+#endif
 }
