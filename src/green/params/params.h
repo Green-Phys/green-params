@@ -17,6 +17,15 @@
 
 namespace green::params {
 
+  namespace internal {
+    template <typename T>
+    struct is_vector_t : std::false_type {};
+    template <typename T>
+    struct is_vector_t<std::vector<T>> : std::true_type {};
+    template <typename T>
+    constexpr bool is_vector_v = is_vector_t<T>::value;
+  }
+
   /**
    *  Class to store command-line parameter wrapped around argparse parameter entry
    */
@@ -117,6 +126,7 @@ namespace green::params {
     void define(const std::string& name, const std::string& descr, const std::optional<T>& default_value = std::nullopt) {
       built_                 = false;
       argparse::Entry* entry = &args_.kwarg_t<T>(name, descr);
+      if constexpr (internal::is_vector_v<T>) entry->multi_argument();
       if (default_value.has_value()) entry->set_default(default_value.value());
       parameters_map_[name] = std::make_unique<params_item>(name, entry, typeid(T));
     }

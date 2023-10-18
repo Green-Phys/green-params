@@ -97,14 +97,21 @@ TEST_CASE("Params") {
   SECTION("Different Types") {
     auto        p       = green::params::params("DESCR");
     std::string inifile = TEST_PATH + "/test.ini"s;
-    std::string args    = "test " + inifile;
+    std::string args    = "test " + inifile + " --STRING.VEC=AA,BB,CC";
     auto [argc, argv]   = get_argc_argv(args);
     p.define<std::string>("STRING.X", "value from file");
     p.define<std::string>("STRING.Y", "value from file section");
+    p.define<std::vector<std::string> >("STRING.VEC", "vector value");
+    p.define<std::vector<std::string> >("STRING.VEC2", "vector value");
     p.define<myenum>("ENUMTYPE", "value from file section", BLACK);
     p.parse(argc, argv);
     std::string a = p["STRING.X"];
     std::string b = p["STRING.Y"];
+    std::vector<std::string> vec = p["STRING.VEC"];
+    std::vector<std::string> vec2 = p["STRING.VEC2"];
+    REQUIRE(vec.size() == 3);
+    REQUIRE(vec2.size() == 4);
+    REQUIRE(vec[0] == "AA");
     int c;
     int d;
     REQUIRE(a == "123456");
