@@ -135,14 +135,17 @@ TEST_CASE("Params") {
   SECTION("Add Definition") {
     auto        p       = green::params::params("DESCR");
     std::string inifile = TEST_PATH + "/test.ini"s;
-    std::string args    = "test " + inifile;
+    std::string args    = "test " + inifile + "  ";
     auto [argc, argv]   = get_argc_argv(args);
     p.parse(argc, argv);
+    p.define<int>("A", "value from command line");
     p.define<std::string>("STRING.X", "value from file");
     p.define<std::string>("STRING.Y", "value from file section");
     p.define<myenum>("ENUMTYPE", "value from file section", BLACK);
     std::string a = p["STRING.X"];
     std::string b = p["STRING.Y"];
+    int A;
+    REQUIRE_THROWS_AS(A = p["A"], green::params::params_value_error);
     myenum x = p["ENUMTYPE"];
     REQUIRE(a == "123456");
     REQUIRE(b == "ALPHA");
