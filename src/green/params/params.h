@@ -125,10 +125,13 @@ namespace green::params {
     template <typename T>
     void define(const std::string& name, const std::string& descr, const std::optional<T>& default_value = std::nullopt) {
       built_                 = false;
+      std::vector<std::string> names = argparse::split(name);
       argparse::Entry* entry = &args_.kwarg_t<T>(name, descr);
       if constexpr (internal::is_vector_v<T>) entry->multi_argument();
       if (default_value.has_value()) entry->set_default(default_value.value());
-      parameters_map_[name] = std::make_unique<params_item>(name, entry, typeid(T));
+      for(auto curr_name : names ) {
+        parameters_map_[curr_name] = std::make_unique<params_item>(curr_name, entry, typeid(T));
+      }
     }
 
     /**

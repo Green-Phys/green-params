@@ -97,9 +97,10 @@ TEST_CASE("Params") {
   SECTION("Different Types") {
     auto        p       = green::params::params("DESCR");
     std::string inifile = TEST_PATH + "/test.ini"s;
-    std::string args    = "test " + inifile + " --STRING.VEC=AA,BB,CC";
+    std::string args    = "test " + inifile + " --STRING.VEC=AA,BB,CC -Z r";
     auto [argc, argv]   = get_argc_argv(args);
-    p.define<std::string>("STRING.X", "value from file");
+    p.define<std::string>("STRING.X,XXX,Y", "value from file");
+    p.define<std::string>("XXX,YY,Z", "value from file");
     p.define<std::string>("STRING.Y", "value from file section");
     p.define<std::vector<std::string> >("STRING.VEC", "vector value");
     p.define<std::vector<std::string> >("STRING.VEC2", "vector value");
@@ -117,6 +118,7 @@ TEST_CASE("Params") {
     REQUIRE(a == "123456");
     REQUIRE(b == "ALPHA");
     REQUIRE_NOTHROW(c = p["STRING.X"]);
+    REQUIRE(std::string(p["XXX"]) == "r"s);
     REQUIRE(c == 123456);
     REQUIRE_THROWS_AS(d = p["STRING.Y"], green::params::params_convert_error);
   }
