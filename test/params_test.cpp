@@ -99,7 +99,7 @@ TEST_CASE("Params") {
     std::string inifile = TEST_PATH + "/test.ini"s;
     std::string args    = "test " + inifile + " --STRING.VEC=AA,BB,CC -Z r";
     auto [argc, argv]   = get_argc_argv(args);
-    p.define<std::string>("STRING.X,XXX,Y", "value from file");
+    p.define<std::string>("STRING.X,Y", "value from file");
     p.define<std::string>("XXX,YY,Z", "value from file");
     p.define<std::string>("STRING.Y", "value from file section");
     p.define<std::vector<std::string> >("STRING.VEC", "vector value");
@@ -164,4 +164,23 @@ TEST_CASE("Params") {
     REQUIRE_THROWS_AS(p.help(), green::params::params_notparsed_error);
   }
 #endif
+  SECTION("Redefinition") {
+    auto        p       = green::params::params("DESCR");
+    std::string args    = "test -X 12";
+    auto [argc, argv]   = get_argc_argv(args);
+    p.define<int>("X,XXX,ZZZ", "value from file");
+    p.define<int>("Y,YYY,WWW", "value from file");
+    REQUIRE_THROWS_AS(p.define<long>("X", "redefined X"), green::params::params_redefinition_error);
+    REQUIRE_THROWS_AS(p.define<long>("XXX", "redefined X"), green::params::params_redefinition_error);
+    REQUIRE_THROWS_AS(p.define<long>("ZZZ", "redefined X"), green::params::params_redefinition_error);
+    REQUIRE_NOTHROW(p.define<int>("X", "redefined X"));
+    REQUIRE_NOTHROW(p.define<int>("XXX", "redefined X"));
+    REQUIRE_NOTHROW(p.define<int>("ZZZ", "redefined X"));
+    REQUIRE_THROWS_AS(p.define<int>("X,Y", "redefined X"), green::params::params_redefinition_error);
+    REQUIRE_NOTHROW(p.define<int>("X,XXX", "redefined X"));
+    REQUIRE_NOTHROW(p.define<int>("X,XXX,QQQ", "redefined X"));
+    p.parse(argc, argv);
+    REQUIRE(int(p["X"]) == int(p["QQQ"]));
+  }
+
 }

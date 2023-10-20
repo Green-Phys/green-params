@@ -24,7 +24,7 @@ namespace green::params {
     struct is_vector_t<std::vector<T>> : std::true_type {};
     template <typename T>
     constexpr bool is_vector_v = is_vector_t<T>::value;
-  }
+  }  // namespace internal
 
   /**
    *  Class to store command-line parameter wrapped around argparse parameter entry
@@ -59,7 +59,7 @@ namespace green::params {
     template <typename T>
     operator T() const {
       std::type_index lhs_type = typeid(T);
-      if (lhs_type == argument_type_.value() && entry_->has_value()) {
+      if (lhs_type == argument_type_ && entry_->has_value()) {
         return entry_->value<T>();
       }
       try {
@@ -73,7 +73,7 @@ namespace green::params {
           convert.convert(default_value_.value());
           return convert.data;
         }
-      } catch (std::exception & e) {
+      } catch (std::exception& e) {
         throw params_convert_error(e.what());
       }
       throw params_value_error("No value provided for non-optional parameter " + name_);
@@ -83,21 +83,31 @@ namespace green::params {
      * Update entry stored value
      * @param new_value - new value to be stored
      */
-    void update_entry(const std::string& new_value) { entry_->updata_value(new_value); }
+    void             update_entry(const std::string& new_value) { entry_->updata_value(new_value); }
 
     /**
      * Check if the value has been set in command line parameters
      *
-     * @return
+     * @return true if the value has been set by user
      */
-    bool is_set() const { return entry_->is_set(); }
+    bool             is_set() const { return entry_->is_set(); }
+
+    /**
+     * @return type_index this param_item has been defined with
+     */
+    std::type_index  argument_type() const { return argument_type_; }
+
+    /**
+     * @return pointer to argument parser entry
+     */
+    argparse::Entry* entry() const { return entry_; }
 
   private:
-    std::string                    name_;
-    argparse::Entry*               entry_;
-    std::optional<std::type_index> argument_type_;
-    std::optional<std::string>     default_value_;
-    bool                           optional_;
+    std::string                name_;
+    argparse::Entry*           entry_;
+    std::type_index            argument_type_;
+    std::optional<std::string> default_value_;
+    bool                       optional_;
   };
 
   /**
@@ -124,12 +134,12 @@ namespace green::params {
      */
     template <typename T>
     void define(const std::string& name, const std::string& descr, const std::optional<T>& default_value = std::nullopt) {
-      built_                 = false;
-      std::vector<std::string> names = argparse::split(name);
-      argparse::Entry* entry = &args_.kwarg_t<T>(name, descr);
+      built_                         = false;
+      auto [names, redefinied, old_entry] = check_redefiniton<T>(argparse::split(name));
+      argparse::Entry* entry = redefinied ? old_entry : &args_.kwarg_t<T>(name, descr);
       if constexpr (internal::is_vector_v<T>) entry->multi_argument();
       if (default_value.has_value()) entry->set_default(default_value.value());
-      for(auto curr_name : names ) {
+      for (auto curr_name : names) {
         parameters_map_[curr_name] = std::make_unique<params_item>(curr_name, entry, typeid(T));
       }
     }
@@ -206,7 +216,8 @@ namespace green::params {
     bool                                                          build() {
       bool help_requested = args_.build(false);
       if (help_requested) return true;
-      if (inifile_->has_value() && !inifile_->string_value().value().empty() && std::filesystem::exists(inifile_->string_value().value())) {
+      if (inifile_->has_value() && !inifile_->string_value().value().empty() &&
+          std::filesystem::exists(inifile_->string_value().value())) {
         INI::File ft;
         ft.Load(inifile_->string_value().value(), true);
         for (auto& [name, param] : parameters_map_) {
@@ -225,6 +236,27 @@ namespace green::params {
       }
       built_ = true;
       return false;
+    }
+    template <typename T>
+    auto check_redefiniton(const std::vector<std::string>& names) {
+      std::vector<std::string> new_names;
+      std::type_index          lhs_type = typeid(T);
+      argparse::Entry*         p        = nullptr;
+      for (auto name : names) {
+        if (parameters_map_.find(name) != parameters_map_.end() && parameters_map_[name]->argument_type() != lhs_type) {
+          throw params_redefinition_error("Parameter " + name + " has already been defined but has different type.");
+        } else if (parameters_map_.find(name) != parameters_map_.end()) {
+          if (!p) {
+            p = parameters_map_[name]->entry();
+          } else if (p != parameters_map_[name]->entry()) {
+            throw params_redefinition_error("Two or more aliases of the current parameter " + name +
+                                            " has already been defined but point to a different parameter item.");
+          }
+        } else {
+          new_names.push_back(name);
+        }
+      }
+      return std::tuple(new_names,  p != nullptr, p);
     }
   };
 
