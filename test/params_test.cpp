@@ -163,6 +163,22 @@ TEST_CASE("Params") {
     REQUIRE_THROWS_AS(p.print(), green::params::params_notparsed_error);
     REQUIRE_THROWS_AS(p.help(), green::params::params_notparsed_error);
   }
+
+  SECTION("Const access Not Built") {
+    auto        p       = green::params::params("DESCR");
+    std::string inifile = TEST_PATH + "/test.ini"s;
+    std::string args    = "test " + inifile;
+    auto [argc, argv]   = get_argc_argv(args);
+    p.define<std::string>("STRING.X", "value from file");
+    p.define<std::string>("STRING.Y", "value from file section");
+    p.parse(argc, argv);
+    p.define<myenum>("ENUMTYPE", "value from file section", BLACK);
+    const green::params::params & p2 = p;
+    REQUIRE_THROWS_AS(p2["STRING.X"], green::params::params_notbuilt_error);
+    p["STRING.X"];
+    REQUIRE_NOTHROW(p2["STRING.X"]);
+    REQUIRE(std::string(p2["STRING.X"]) == "123456"s);
+  }
 #endif
   SECTION("Redefinition") {
     auto        p       = green::params::params("DESCR");

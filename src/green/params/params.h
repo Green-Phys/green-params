@@ -165,6 +165,22 @@ namespace green::params {
       }
       return *parameters_map_.at(param_name).get();
     }
+    /**
+     * Subscript operator to access parameter by name. Can be assigned to any type that can accomodate the parameter value.
+     *
+     * @param param_name - name of the parameter to return
+     * @return const reference to the parameter with specific name
+     */
+    const params_item& operator[] (const std::string& param_name) const {
+#ifndef NDEBUG
+      if (!parsed_) throw params_notparsed_error("Parameters has to be parsed before access.");
+      if (!built_)  throw params_notbuilt_error("Parameters has to be built before access if passing const params.");
+#endif
+      if (parameters_map_.count(param_name) <= 0) {
+        throw params_notfound_error("Parameter " + param_name + " is not found.");
+      }
+      return *parameters_map_.at(param_name).get();
+    }
 
     /**
      * Parse standard command line arguments. As usual, the first parameter should be program name.
