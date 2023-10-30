@@ -24,6 +24,9 @@ namespace green::params {
     struct is_vector_t<std::vector<T>> : std::true_type {};
     template <typename T>
     constexpr bool is_vector_v = is_vector_t<T>::value;
+    template <typename T>
+    constexpr bool is_valid_type =
+        is_vector_v<T> || std::is_same_v<std::remove_const_t<T>, std::string> || std::is_arithmetic_v<T> || std::is_enum_v<T>;
   }  // namespace internal
 
   /**
@@ -56,7 +59,7 @@ namespace green::params {
      * @tparam T - type of the lhs argument
      * @return representation of the parameter in type T if conversion is possible
      */
-    template <typename T>
+    template <typename T, typename = std::enable_if_t<internal::is_valid_type<T>>>
     operator T() const {
       std::type_index lhs_type = typeid(T);
       if (lhs_type == argument_type_ && entry_->has_value()) {
@@ -134,9 +137,9 @@ namespace green::params {
      */
     template <typename T>
     void define(const std::string& name, const std::string& descr, const std::optional<T>& default_value = std::nullopt) {
-      built_                         = false;
+      built_                              = false;
       auto [names, redefinied, old_entry] = check_redefiniton<T>(argparse::split(name));
-      argparse::Entry* entry = redefinied ? old_entry : &args_.kwarg_t<T>(name, descr);
+      argparse::Entry* entry              = redefinied ? old_entry : &args_.kwarg_t<T>(name, descr);
       if constexpr (internal::is_vector_v<T>) entry->multi_argument();
       if (default_value.has_value()) entry->set_default(default_value.value());
       for (auto curr_name : names) {
@@ -171,10 +174,10 @@ namespace green::params {
      * @param param_name - name of the parameter to return
      * @return const reference to the parameter with specific name
      */
-    const params_item& operator[] (const std::string& param_name) const {
+    const params_item& operator[](const std::string& param_name) const {
 #ifndef NDEBUG
       if (!parsed_) throw params_notparsed_error("Parameters has to be parsed before access.");
-      if (!built_)  throw params_notbuilt_error("Parameters has to be built before access if passing const params.");
+      if (!built_) throw params_notbuilt_error("Parameters has to be built before access if passing const params.");
 #endif
       if (parameters_map_.count(param_name) <= 0) {
         throw params_notfound_error("Parameter " + param_name + " is not found.");
@@ -272,7 +275,7 @@ namespace green::params {
           new_names.push_back(name);
         }
       }
-      return std::tuple(new_names,  p != nullptr, p);
+      return std::tuple(new_names, p != nullptr, p);
     }
   };
 
