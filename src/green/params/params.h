@@ -13,6 +13,7 @@
 #include <memory>
 #include <typeindex>
 
+#include "common.h"
 #include "except.h"
 
 namespace green::params {
@@ -183,6 +184,17 @@ namespace green::params {
         throw params_notfound_error("Parameter " + param_name + " is not found.");
       }
       return *parameters_map_.at(param_name).get();
+    }
+
+    /**
+     * Parse command line arguments represented as a string. As usual, the first parameter should be program name.
+     * @param s - string with command line arguments
+     * @return false if help requested, true otherwise
+     */
+    bool parse(const std::string& s) {
+      std::string to_parse = s;
+      auto [argc, argv]    = get_argc_argv(to_parse);
+      return parse(argc, argv);
     }
 
     /**

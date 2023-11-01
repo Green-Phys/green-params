@@ -1,7 +1,7 @@
 /*
-* Copyright (c) 2020-2022 University of Michigan.
-*
-*/
+ * Copyright (c) 2020-2022 University of Michigan.
+ *
+ */
 #include "green/params/params.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -10,37 +10,46 @@ using namespace std::string_literals;
 
 enum myenum { GREEN, BLACK, YELLOW };
 
-std::pair<int, char**> get_argc_argv(std::string& str) {
-  std::string        key;
-  std::vector<char*> splits = {(char*)str.c_str()};
-  for (int i = 1; i < str.size(); i++) {
-    if (str[i] == ' ') {
-      str[i] = '\0';
-      splits.emplace_back(&str[++i]);
-    }
-  }
-  char** argv = new char*[splits.size()];
-  for (int i = 0; i < splits.size(); i++) {
-    argv[i] = splits[i];
-  }
-
-  return {(int)splits.size(), argv};
-}
-
 TEST_CASE("Params") {
   SECTION("Test Init") {
     auto p = green::params::params("DESCR");
     REQUIRE(p.description() == "DESCR");
   }
 
+  SECTION("String parser") {
+    SECTION("SIMPLE") {
+      std::string args  = "test --a 33";
+      auto [argc, argv] = green::params::get_argc_argv(args);
+      REQUIRE(argc == 3);
+    }
+    SECTION("Long name") {
+      std::string args  = "test    --a \"33 and some space\"";
+      auto [argc, argv] = green::params::get_argc_argv(args);
+      REQUIRE(argc == 3);
+    }
+    SECTION("Long name with single quote") {
+      std::string args  = "test --a '33 and some space'";
+      auto [argc, argv] = green::params::get_argc_argv(args);
+      REQUIRE(argc == 3);
+    }
+    SECTION("Long name with mixed quote") {
+      std::string args  = "test --a '33 \"and some\" space'";
+      auto [argc, argv] = green::params::get_argc_argv(args);
+      REQUIRE(argc == 3);
+    }
+    SECTION("Unmatched quote error") {
+      std::string args = "test --a '33 and some space";
+      REQUIRE_THROWS_AS(green::params::get_argc_argv(args), green::params::params_str_parse_error);
+    }
+  }
+
   SECTION("Parse Parameters") {
-    auto        p     = green::params::params("DESCR");
-    std::string args  = "test --a 33";
-    auto [argc, argv] = get_argc_argv(args);
+    auto        p    = green::params::params("DESCR");
+    std::string args = "test --a 33";
     p.define<int>("a", "A value");
     p.define<int>("b", "B value", 5);
     p.define<int>("c", "C value");
-    p.parse(argc, argv);
+    p.parse(args);
     int  a = p["a"];
     long b = p["b"];
     int  c;
@@ -50,21 +59,19 @@ TEST_CASE("Params") {
   }
 
   SECTION("Nonexisting INI File") {
-    auto        p     = green::params::params("DESCR");
-    std::string args  = "test --a 33 BLABLABLA";
-    auto [argc, argv] = get_argc_argv(args);
+    auto        p    = green::params::params("DESCR");
+    std::string args = "test --a 33 BLABLABLA";
     p.define<int>("a", "value");
-    REQUIRE_THROWS_AS(p.parse(argc, argv), green::params::params_inifile_error);
+    REQUIRE_THROWS_AS(p.parse(args), green::params::params_inifile_error);
   }
 
   SECTION("Parse Parameters from File") {
     auto        p       = green::params::params("DESCR");
     std::string inifile = TEST_PATH + "/test.ini"s;
     std::string args    = "test " + inifile + " --a 33 BLABLABLA";
-    auto [argc, argv]   = get_argc_argv(args);
     p.define<int>("AA", "value from file");
     p.define<int>("AAA.AA", "value from file section", 5);
-    p.parse(argc, argv);
+    p.parse(args);
     int  a = p["AA"];
     long b = p["AAA.AA"];
     REQUIRE(a == 123);
@@ -72,11 +79,10 @@ TEST_CASE("Params") {
   }
 
   SECTION("Nonexisting Argument") {
-    auto        p     = green::params::params("DESCR");
-    std::string args  = "test --a 33";
-    auto [argc, argv] = get_argc_argv(args);
+    auto        p    = green::params::params("DESCR");
+    std::string args = "test --a 33";
     p.define<int>("a", "value");
-    p.parse(argc, argv);
+    p.parse(args);
     REQUIRE_THROWS_AS(p["b"], green::params::params_notfound_error);
   }
 
@@ -84,10 +90,9 @@ TEST_CASE("Params") {
     auto        p       = green::params::params("DESCR");
     std::string inifile = TEST_PATH + "/test.ini"s;
     std::string args    = "test " + inifile + " --AA 33 --AAA.AA=4";
-    auto [argc, argv]   = get_argc_argv(args);
     p.define<int>("AA", "value from file");
     p.define<int>("AAA.AA", "value from file section", 5);
-    p.parse(argc, argv);
+    p.parse(args);
     int  a = p["AA"];
     long b = p["AAA.AA"];
     REQUIRE(a == 33);
@@ -98,17 +103,16 @@ TEST_CASE("Params") {
     auto        p       = green::params::params("DESCR");
     std::string inifile = TEST_PATH + "/test.ini"s;
     std::string args    = "test " + inifile + " --STRING.VEC=AA,BB,CC -Z r";
-    auto [argc, argv]   = get_argc_argv(args);
     p.define<std::string>("STRING.X,Y", "value from file");
     p.define<std::string>("XXX,YY,Z", "value from file");
     p.define<std::string>("STRING.Y", "value from file section");
-    p.define<std::vector<std::string> >("STRING.VEC", "vector value");
-    p.define<std::vector<std::string> >("STRING.VEC2", "vector value");
+    p.define<std::vector<std::string>>("STRING.VEC", "vector value");
+    p.define<std::vector<std::string>>("STRING.VEC2", "vector value");
     p.define<myenum>("ENUMTYPE", "value from file section", BLACK);
-    p.parse(argc, argv);
-    std::string a = p["STRING.X"];
-    std::string b = p["STRING.Y"];
-    std::vector<std::string> vec = p["STRING.VEC"];
+    p.parse(args);
+    std::string              a    = p["STRING.X"];
+    std::string              b    = p["STRING.Y"];
+    std::vector<std::string> vec  = p["STRING.VEC"];
     std::vector<std::string> vec2 = p["STRING.VEC2"];
     REQUIRE(vec.size() == 3);
     REQUIRE(vec2.size() == 4);
@@ -127,24 +131,22 @@ TEST_CASE("Params") {
     auto        p       = green::params::params("DESCR");
     std::string inifile = TEST_PATH + "/test.ini"s;
     std::string args    = "test -?";  // + inifile;
-    auto [argc, argv]   = get_argc_argv(args);
     p.define<myenum>("ENUMTYPE", "value from file section", BLACK);
-    REQUIRE_FALSE(p.parse(argc, argv));
+    REQUIRE_FALSE(p.parse(args));
   }
 
   SECTION("Add Definition") {
     auto        p       = green::params::params("DESCR");
     std::string inifile = TEST_PATH + "/test.ini"s;
     std::string args    = "test " + inifile + "  ";
-    auto [argc, argv]   = get_argc_argv(args);
-    p.parse(argc, argv);
+    p.parse(args);
     p.define<int>("A", "value from command line");
     p.define<std::string>("STRING.X", "value from file");
     p.define<std::string>("STRING.Y", "value from file section");
     p.define<myenum>("ENUMTYPE", "value from file section", BLACK);
     std::string a = p["STRING.X"];
     std::string b = p["STRING.Y"];
-    int A;
+    int         A;
     REQUIRE_THROWS_AS(A = p["A"], green::params::params_value_error);
     myenum x = p["ENUMTYPE"];
     REQUIRE(a == "123456");
@@ -156,7 +158,6 @@ TEST_CASE("Params") {
     auto        p       = green::params::params("DESCR");
     std::string inifile = TEST_PATH + "/test.ini"s;
     std::string args    = "test " + inifile;
-    auto [argc, argv]   = get_argc_argv(args);
     p.define<std::string>("STRING.X", "value from file");
     p.define<std::string>("STRING.Y", "value from file section");
     p.define<myenum>("ENUMTYPE", "value from file section", BLACK);
@@ -168,12 +169,11 @@ TEST_CASE("Params") {
     auto        p       = green::params::params("DESCR");
     std::string inifile = TEST_PATH + "/test.ini"s;
     std::string args    = "test " + inifile;
-    auto [argc, argv]   = get_argc_argv(args);
     p.define<std::string>("STRING.X", "value from file");
     p.define<std::string>("STRING.Y", "value from file section");
-    p.parse(argc, argv);
+    p.parse(args);
     p.define<myenum>("ENUMTYPE", "value from file section", BLACK);
-    const green::params::params & p2 = p;
+    const green::params::params& p2 = p;
     REQUIRE_THROWS_AS(p2["STRING.X"], green::params::params_notbuilt_error);
     p["STRING.X"];
     REQUIRE_NOTHROW(p2["STRING.X"]);
@@ -181,9 +181,8 @@ TEST_CASE("Params") {
   }
 #endif
   SECTION("Redefinition") {
-    auto        p       = green::params::params("DESCR");
-    std::string args    = "test -X 12";
-    auto [argc, argv]   = get_argc_argv(args);
+    auto        p    = green::params::params("DESCR");
+    std::string args = "test -X 12";
     p.define<int>("X,XXX,ZZZ", "value from file");
     p.define<int>("Y,YYY,WWW", "value from file");
     REQUIRE_THROWS_AS(p.define<long>("X", "redefined X"), green::params::params_redefinition_error);
@@ -195,8 +194,7 @@ TEST_CASE("Params") {
     REQUIRE_THROWS_AS(p.define<int>("X,Y", "redefined X"), green::params::params_redefinition_error);
     REQUIRE_NOTHROW(p.define<int>("X,XXX", "redefined X"));
     REQUIRE_NOTHROW(p.define<int>("X,XXX,QQQ", "redefined X"));
-    p.parse(argc, argv);
+    p.parse(args);
     REQUIRE(int(p["X"]) == int(p["QQQ"]));
   }
-
 }

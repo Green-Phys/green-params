@@ -9,6 +9,11 @@
 #include <stdexcept>
 
 namespace green::params {
+  class params_str_parse_error : public std::runtime_error {
+  public:
+    params_str_parse_error(const std::string& string) : runtime_error(string) {}
+  };
+
   class params_redefinition_error : public std::runtime_error {
   public:
     params_redefinition_error(const std::string& string) : runtime_error(string) {}
