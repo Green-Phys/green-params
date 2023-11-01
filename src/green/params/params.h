@@ -206,8 +206,10 @@ namespace green::params {
      */
     bool parse(int argc, char* argv[]) {
       args_.parse(argc, argv, false);
+      parsed_ = true;
+      if (parameters_map_.empty() && argc > 2)
+        return false;  // we provided command line parameters but haven't defined any them yet
       bool help_requested = build();
-      parsed_             = true;
       return !help_requested;
     }
 
@@ -242,7 +244,6 @@ namespace green::params {
     std::unordered_map<std::string, std::unique_ptr<params_item>> parameters_map_;
     std::string                                                   description_;
     argparse::Entry*                                              inifile_;
-    std::vector<std::string>                                      commandline_params_;
 
     bool                                                          build() {
       bool help_requested = args_.build(false);

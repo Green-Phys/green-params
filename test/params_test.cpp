@@ -66,6 +66,15 @@ TEST_CASE("Params") {
   }
 
   SECTION("Parse Parameters from File") {
+    SECTION("Only with file") {
+      auto        p       = green::params::params("DESCR");
+      std::string inifile = TEST_PATH + "/test.ini"s;
+      std::string args    = "test " + inifile;
+      p.define<int>("AA", "value from file");
+      p.parse(args);
+      int a = p["AA"];
+      REQUIRE(a == 123);
+    }
     auto        p       = green::params::params("DESCR");
     std::string inifile = TEST_PATH + "/test.ini"s;
     std::string args    = "test " + inifile + " --a 33 BLABLABLA";
@@ -136,6 +145,14 @@ TEST_CASE("Params") {
   }
 
   SECTION("Add Definition") {
+    SECTION("Parse before definitons") {
+      auto        p    = green::params::params("DESCR");
+      std::string args = "test --A 2";
+      REQUIRE_NOTHROW(p.parse(args));
+      p.define<int>("A", "value from command line");
+      int a = p["A"];
+      REQUIRE(a == 2);
+    }
     auto        p       = green::params::params("DESCR");
     std::string inifile = TEST_PATH + "/test.ini"s;
     std::string args    = "test " + inifile + "  ";
