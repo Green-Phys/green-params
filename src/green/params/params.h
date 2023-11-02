@@ -214,6 +214,12 @@ namespace green::params {
     }
 
     /**
+     * Rebuild parameters.
+     * @return true if help requested
+     */
+    bool build() { return build_internal(); }
+
+    /**
      * Print all the parameters and their current values
      */
     void print() {
@@ -245,7 +251,7 @@ namespace green::params {
     std::string                                                   description_;
     argparse::Entry*                                              inifile_;
 
-    bool                                                          build() {
+    inline bool                                                   build_internal() {
       bool help_requested = args_.build(false);
       if (help_requested) return true;
       if (inifile_->has_value() && !inifile_->string_value().value().empty() &&
@@ -264,7 +270,7 @@ namespace green::params {
         }
       } else if (inifile_->has_value() && !inifile_->string_value().value().empty()) {
         throw params_inifile_error("First positional argument should be a name of a valid parameter INI file. " +
-                                                                                            inifile_->string_value().value());
+                                   inifile_->string_value().value());
       }
       built_ = true;
       return false;

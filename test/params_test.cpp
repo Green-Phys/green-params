@@ -147,9 +147,10 @@ TEST_CASE("Params") {
   SECTION("Add Definition") {
     SECTION("Parse before definitons") {
       auto        p    = green::params::params("DESCR");
-      std::string args = "test --A 2";
+      std::string args = "test --A 2 --C 3 --D 4";
       REQUIRE_NOTHROW(p.parse(args));
       p.define<int>("A", "value from command line");
+      REQUIRE_NOTHROW(p.build());
       int a = p["A"];
       REQUIRE(a == 2);
     }

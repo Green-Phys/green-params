@@ -402,7 +402,7 @@ namespace argparse {
     std::map<std::string, std::shared_ptr<Entry>>           kwarg_entries;
     std::vector<std::shared_ptr<Entry>>                     arg_entries;
     std::map<std::string, std::shared_ptr<SubcommandEntry>> subcommand_entries;
-    bool                                                    &_help = flag("?,help", "print help");
+    bool&                                                   _help = flag("?,help", "print help");
 
   public:
     std::string program_name;
@@ -584,9 +584,11 @@ namespace argparse {
           } else {
             entry->error = "No value provided for: " + key;
           }
-        } else {
-          // cerr << "unrecognised commandline argument: " << key << endl;
+        } else if (!equal_value.has_value() and is_value(i + 1)) {
+          ++i;
         }
+        // if we parse string where parameter has not yet been defined it will become positional parameter and we would
+        // like to avoid it
       };
       auto add_param = [&](size_t& i, const size_t& start) {
         size_t eq_idx = params[i].find('=');  // check if value was passed using the '=' sign
