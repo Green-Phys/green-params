@@ -43,13 +43,10 @@ namespace green::params {
      * @param argument_type - type of the parameter
      * @param default_value - defalt value (optional)
      */
-    params_item(const std::string& name, argparse::Entry* entry, std::type_index argument_type,
-                std::optional<std::string> default_value = std::nullopt) :
-        name_(name),
-        entry_(entry), argument_type_(argument_type), optional_(false) {
-      if (default_value.has_value()) {
-        default_value_ = default_value.value();
-        optional_      = true;
+    params_item(const std::string& name, argparse::Entry* entry, std::type_index argument_type) :
+        name_(name), entry_(entry), argument_type_(argument_type), optional_(false) {
+      if (entry->has_value()) {
+        optional_ = true;
       }
     }
 

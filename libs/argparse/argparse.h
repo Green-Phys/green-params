@@ -311,6 +311,7 @@ namespace argparse {
     void updata_value(const std::string& new_value) {
       value_ = new_value;
       _convert(value_.value());
+      is_set_by_user = true;
     }
 
     bool is_set() const { return is_set_by_user; }
