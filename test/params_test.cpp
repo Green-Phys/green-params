@@ -95,6 +95,14 @@ TEST_CASE("Params") {
     REQUIRE_THROWS_AS(p["b"], green::params::params_notfound_error);
   }
 
+  SECTION("Argument without default value") {
+    auto        p    = green::params::params("DESCR");
+    std::string args = "test";
+    p.define<int>("a", "value");
+    p.parse(args);
+    REQUIRE_THROWS_AS(p["a"], green::params::params_value_error);
+  }
+
   SECTION("Redefine Parameters from File") {
     auto        p       = green::params::params("DESCR");
     std::string inifile = TEST_PATH + "/test.ini"s;

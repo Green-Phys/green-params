@@ -46,7 +46,7 @@ namespace green::params {
     params_item(const std::string& name, argparse::Entry* entry, std::type_index argument_type,
                 std::optional<std::string> default_value = std::nullopt) :
         name_(name),
-        entry_(entry), argument_type_(argument_type) {
+        entry_(entry), argument_type_(argument_type), optional_(false) {
       if (default_value.has_value()) {
         default_value_ = default_value.value();
         optional_      = true;
@@ -95,6 +95,11 @@ namespace green::params {
      * @return true if the value has been set by user
      */
     bool             is_set() const { return entry_->is_set(); }
+
+    /**
+     * @return true if parameter has default value
+     */
+    bool             is_optional() const { return optional_; };
 
     /**
      * @return type_index this param_item has been defined with
@@ -167,7 +172,11 @@ namespace green::params {
       if (parameters_map_.count(param_name) <= 0) {
         throw params_notfound_error("Parameter " + param_name + " is not found.");
       }
-      return *parameters_map_.at(param_name).get();
+      const params_item& item = *parameters_map_.at(param_name).get();
+      if (!item.is_optional() && !item.is_set()) {
+        throw params_value_error("Accessing non-optional parameter " + param_name + " with no value set.");
+      }
+      return item;
     }
     /**
      * Subscript operator to access parameter by name. Can be assigned to any type that can accomodate the parameter value.
@@ -183,7 +192,11 @@ namespace green::params {
       if (parameters_map_.count(param_name) <= 0) {
         throw params_notfound_error("Parameter " + param_name + " is not found.");
       }
-      return *parameters_map_.at(param_name).get();
+      const params_item& item = *parameters_map_.at(param_name).get();
+      if (!item.is_optional() && !item.is_set()) {
+        throw params_value_error("Accessing non-optional parameter " + param_name + " with no value set.");
+      }
+      return item;
     }
 
     /**
