@@ -211,6 +211,8 @@ TEST_CASE("Params") {
     std::string args = "test -X 12 --TTT 45";
     p.define<int>("X,XXX,ZZZ", "value from file");
     p.define<int>("Y,YYY,WWW", "value from file");
+    p.define<int>("A", "non-optional value");
+    p.define<int>("K", "optional value", 10);
     REQUIRE_THROWS_AS(p.define<long>("X", "redefined X"), green::params::params_redefinition_error);
     REQUIRE_THROWS_AS(p.define<long>("XXX", "redefined X"), green::params::params_redefinition_error);
     REQUIRE_THROWS_AS(p.define<long>("ZZZ", "redefined X"), green::params::params_redefinition_error);
@@ -221,8 +223,12 @@ TEST_CASE("Params") {
     REQUIRE_NOTHROW(p.define<int>("X,XXX", "redefined X"));
     REQUIRE_NOTHROW(p.define<int>("X,XXX,QQQ", "redefined X"));
     REQUIRE_NOTHROW(p.define<int>("Y,TTT", "redefined Y"));
+    p.define<int>("A,B", "make optional", 1);
+    p.define<int>("M,K", "should still be optional");
     p.parse(args);
     REQUIRE(int(p["X"]) == int(p["QQQ"]));
     REQUIRE(int(p["Y"]) == 45);
+    REQUIRE(int(p["A"]) == 1);
+    REQUIRE(int(p["K"]) == 10);
   }
 }

@@ -114,6 +114,8 @@ namespace green::params {
     std::type_index            argument_type_;
     std::optional<std::string> default_value_;
     bool                       optional_;
+
+    friend class params;
   };
 
   /**
@@ -145,8 +147,21 @@ namespace green::params {
       argparse::Entry* entry              = redefinied ? old_entry : &args_.kwarg_t<T>(name, descr);
       if constexpr (internal::is_vector_v<T>) entry->multi_argument();
       if (default_value.has_value()) entry->set_default(default_value.value());
+      // if (default_value.has_value() && redefinied)
+      std::shared_ptr<params_item> ptr;
+      if (!redefinied) {
+        ptr = std::make_shared<params_item>(name, entry, typeid(T));
+      } else {
+        for (auto curr_name : argparse::split(name)) {
+          if (parameters_map_.count(curr_name) > 0) {
+            ptr            = parameters_map_[curr_name];
+            ptr->optional_ = ptr->optional_ || default_value.has_value();
+            break;
+          }
+        }
+      }
       for (auto curr_name : names) {
-        parameters_map_[curr_name] = std::make_unique<params_item>(curr_name, entry, typeid(T));
+        parameters_map_[curr_name] = ptr;
         if (redefinied) args_.update_definition(curr_name, entry);
       }
     }
@@ -258,7 +273,7 @@ namespace green::params {
     bool                                                          parsed_;
     bool                                                          built_;
     argparse::Args                                                args_;
-    std::unordered_map<std::string, std::unique_ptr<params_item>> parameters_map_;
+    std::unordered_map<std::string, std::shared_ptr<params_item>> parameters_map_;
     std::string                                                   description_;
     argparse::Entry*                                              inifile_;
 
