@@ -532,6 +532,11 @@ namespace argparse {
       }
     }
 
+    void update_definition(const std::string& new_name, argparse::Entry* entry) {
+      std::string old_key     = entry->keys_[0];
+      kwarg_entries[new_name] = kwarg_entries[old_key];
+    }
+
     /* parse all parameters and also check for the help_flag which was set in this constructor
      * Upon error, it will print the error and exit immediately if validation_action is ValidationAction::EXIT_ON_ERROR
      */

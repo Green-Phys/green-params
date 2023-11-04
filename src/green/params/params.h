@@ -147,6 +147,7 @@ namespace green::params {
       if (default_value.has_value()) entry->set_default(default_value.value());
       for (auto curr_name : names) {
         parameters_map_[curr_name] = std::make_unique<params_item>(curr_name, entry, typeid(T));
+        if (redefinied) args_.update_definition(curr_name, entry);
       }
     }
 

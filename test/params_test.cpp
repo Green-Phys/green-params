@@ -208,7 +208,7 @@ TEST_CASE("Params") {
 #endif
   SECTION("Redefinition") {
     auto        p    = green::params::params("DESCR");
-    std::string args = "test -X 12";
+    std::string args = "test -X 12 --TTT 45";
     p.define<int>("X,XXX,ZZZ", "value from file");
     p.define<int>("Y,YYY,WWW", "value from file");
     REQUIRE_THROWS_AS(p.define<long>("X", "redefined X"), green::params::params_redefinition_error);
@@ -220,7 +220,9 @@ TEST_CASE("Params") {
     REQUIRE_THROWS_AS(p.define<int>("X,Y", "redefined X"), green::params::params_redefinition_error);
     REQUIRE_NOTHROW(p.define<int>("X,XXX", "redefined X"));
     REQUIRE_NOTHROW(p.define<int>("X,XXX,QQQ", "redefined X"));
+    REQUIRE_NOTHROW(p.define<int>("Y,TTT", "redefined Y"));
     p.parse(args);
     REQUIRE(int(p["X"]) == int(p["QQQ"]));
+    REQUIRE(int(p["Y"]) == 45);
   }
 }
