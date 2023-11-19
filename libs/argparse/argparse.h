@@ -86,6 +86,24 @@ namespace argparse {
     }
   }
 
+  template <typename T>
+  std::string toString(const std::vector<T>& v) {
+    if constexpr (has_ostream_operator<T>::value) {
+      std::string val;
+      if(v.size()>0) {
+        val += static_cast<std::ostringstream&&>((std::ostringstream() << std::boolalpha << v[0]))
+                   .str();
+      }
+      for(int i = 1; i<v.size(); ++i) {
+        val += "," + static_cast<std::ostringstream&&>((std::ostringstream() << std::boolalpha << v[i]))
+                   .str();
+      }
+      return val;
+    } else {
+      return "unknown";
+    }
+  }
+
   std::vector<std::string> inline split(const std::string& str) {
     std::vector<std::string> splits;
     std::stringstream        ss(str);

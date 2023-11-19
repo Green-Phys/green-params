@@ -63,21 +63,18 @@ namespace green::params {
       if (lhs_type == argument_type_ && entry_->has_value()) {
         return entry_->value<T>();
       }
+      T ret;
       try {
         argparse::ConvertType<T> convert;
         auto                     string_value = entry_->string_value();
         if (string_value.has_value()) {
           convert.convert(string_value.value());
-          return convert.data;
-        }
-        if (default_value_.has_value()) {
-          convert.convert(default_value_.value());
-          return convert.data;
+          ret = convert.data;
         }
       } catch (std::exception& e) {
         throw params_convert_error(e.what());
       }
-      throw params_value_error("No value provided for non-optional parameter " + name_);
+      return ret;
     }
 
     /**
@@ -296,7 +293,7 @@ namespace green::params {
         }
       } else if (inifile_->has_value() && !inifile_->string_value().value().empty()) {
         throw params_inifile_error("First positional argument should be a name of a valid parameter INI file. " +
-                                   inifile_->string_value().value());
+                                                                                     inifile_->string_value().value());
       }
       built_ = true;
       return false;
