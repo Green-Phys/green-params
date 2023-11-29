@@ -272,4 +272,21 @@ TEST_CASE("Params") {
     p.define<int>("C", "define C");
     REQUIRE(p.params_set().size() == 5);
   }
+
+  SECTION("Params Naming") {
+    auto        p    = green::params::params("DESCR");
+    std::string args = "test";
+    p.define<int>("X,XXX,ZZZ", "value 1", 1);
+    REQUIRE(p.params_set().begin()->get()->name() == "X");
+    REQUIRE(p.params_set().begin()->get()->aka() == std::vector<std::string>{"XXX", "ZZZ"});
+    p.define<int>("X,XXX,WWW", "value 1", 1);
+    REQUIRE(p.params_set().begin()->get()->name() == "X");
+    REQUIRE(p.params_set().begin()->get()->aka() == std::vector<std::string>{"XXX", "ZZZ", "WWW"});
+  }
+
+  SECTION("Params Empty Name") {
+    auto        p    = green::params::params("DESCR");
+    std::string args = "test";
+    REQUIRE_THROWS_AS(p.define<int>("", "value 1", 1), green::params::params_empty_name_error);
+  }
 }

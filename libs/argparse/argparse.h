@@ -326,7 +326,7 @@ namespace argparse {
 
     bool has_value() const { return value_.has_value() || default_str_.has_value() || implicit_value_.has_value(); }
 
-    void updata_value(const std::string& new_value) {
+    void update_value(const std::string& new_value) {
       value_ = new_value;
       _convert(value_.value());
       is_set_by_user = true;

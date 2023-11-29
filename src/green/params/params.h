@@ -45,7 +45,10 @@ namespace green::params {
      * @param default_value - defalt value (optional)
      */
     params_item(const std::string& name, argparse::Entry* entry, std::type_index argument_type) :
-        name_(name), entry_(entry), argument_type_(argument_type), optional_(false) {
+        entry_(entry), argument_type_(argument_type), optional_(false) {
+      std::vector<std::string> names = argparse::split(name);
+      name_ = names[0];
+      aka_.insert(aka_.begin(), names.begin()+1, names.end());
       if (entry->has_value()) {
         optional_ = true;
       }
@@ -82,29 +85,47 @@ namespace green::params {
      * Update entry stored value
      * @param new_value - new value to be stored
      */
-    void                           update_entry(const std::string& new_value) { entry_->updata_value(new_value); }
+    void                             update_entry(const std::string& new_value) { entry_->update_value(new_value); }
 
     /**
      * Check if the value has been set in command line parameters
      *
      * @return true if the value has been set by user
      */
-    bool                           is_set() const { return entry_->is_set(); }
+    [[nodiscard]] bool               is_set() const { return entry_->is_set(); }
+
+    /**
+     * \brief Return a primary name of the parameter
+     * \return name of a parameter
+     */
+    [[nodiscard]] const std::string&              name() const { return name_; }
+
+    /**
+     * \brief Each parameter could have multiple aliases that we want to get access to
+     * \return list of all aliases of a current parameter
+     */
+    [[nodiscard]] const std::vector<std::string>& aka() const { return aka_; }
+
+    /**
+     * \brief Non-const version of function `aka()`
+     * \return list of all aliases of a current parameter
+     */
+    [[nodiscard]] std::vector<std::string>& aka() { return aka_; }
 
     /**
      * @return true if parameter has default value
      */
-    bool                           is_optional() const { return optional_; };
+    [[nodiscard]] bool               is_optional() const { return optional_; };
 
     /**
      * @return type_index this param_item has been defined with
      */
-    [[nodiscard]] std::type_index  argument_type() const { return argument_type_; }
+    [[nodiscard]] std::type_index    argument_type() const { return argument_type_; }
 
     /**
      * @return pointer to argument parser entry
      */
-    [[nodiscard]] argparse::Entry* entry() const { return entry_; }
+    [[nodiscard]] argparse::Entry*   entry() const { return entry_; }
 
   private:
     std::string                name_;
@@ -141,12 +162,14 @@ namespace green::params {
      */
     template <typename T>
     void define(const std::string& name, const std::string& descr, const std::optional<T>& default_value = std::nullopt) {
+      if(name.empty()) {
+        throw params_empty_name_error("Can not define parameter with an empty name");
+      }
       built_                              = false;
       auto [names, redefinied, old_entry] = check_redefiniton<T>(argparse::split(name));
       argparse::Entry* entry              = redefinied ? old_entry : &args_.kwarg_t<T>(name, descr);
       if constexpr (internal::is_vector_v<T>) entry->multi_argument();
       if (default_value.has_value()) entry->set_default(default_value.value());
-      // if (default_value.has_value() && redefinied)
       std::shared_ptr<params_item> ptr;
       if (!redefinied) {
         ptr = std::make_shared<params_item>(name, entry, typeid(T));
@@ -161,7 +184,10 @@ namespace green::params {
       }
       for (auto curr_name : names) {
         parameters_map_[curr_name] = ptr;
-        if (redefinied) args_.update_definition(curr_name, entry);
+        if (redefinied) {
+          args_.update_definition(curr_name, entry);
+          ptr->aka().push_back(curr_name);
+        }
       }
       params_set_.insert(ptr);
     }
@@ -269,7 +295,7 @@ namespace green::params {
       args_.help();
     }
 
-    [[nodiscard]] const std::unordered_set<std::shared_ptr<params_item>> & params_set() const { return params_set_;}
+    [[nodiscard]] const std::unordered_set<std::shared_ptr<params_item>>& params_set() const { return params_set_; }
 
   private:
     bool                                                          parsed_;
