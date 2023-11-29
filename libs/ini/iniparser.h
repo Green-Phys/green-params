@@ -442,7 +442,7 @@ namespace INI {
       FromString(str, sep, seg_open, seg_close, esc);
     }
     template <class T>
-    Array(const std::vector<T>& vect) {
+    explicit Array(const std::vector<T>& vect) {
       FromVector(vect);
     }
     virtual ~Array() {}
@@ -1283,7 +1283,6 @@ static inline std::istream& operator>>(std::istream& stream, INI::File& file) {
   file.Load(stream, false);
   return stream;
 }
-
 /*---------------------------------------------------------------------------------------------------------------/
 / Little tidying up
 /---------------------------------------------------------------------------------------------------------------*/

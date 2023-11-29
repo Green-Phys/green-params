@@ -232,6 +232,30 @@ TEST_CASE("Params") {
     REQUIRE(int(p["K"]) == 10);
   }
 
+  SECTION("Convert default value") {
+    auto        p    = green::params::params("DESCR");
+    std::string args = "test ";
+    p.define<int>("AA", "value from file");
+    std::vector<int> def{1, 2, 3, 4};
+    p.define<std::vector<int>>("VEC", "value from file", def);
+    p.parse(args);
+    const auto& p2 = p;
+    REQUIRE_THROWS_AS(long(p["AA"]), green::params::params_value_error);
+    REQUIRE_THROWS_AS(long(p["AAA"]), green::params::params_notfound_error);
+    REQUIRE_THROWS_AS(long(p2["AA"]), green::params::params_value_error);
+    REQUIRE_THROWS_AS(long(p2["AAA"]), green::params::params_notfound_error);
+    std::vector<long> vec_long = p["VEC"];
+    REQUIRE(std::equal(def.begin(), def.end(), vec_long.begin()));
+  }
+
+  SECTION("Check help and print don't throw") {
+    auto        p    = green::params::params("DESCR");
+    std::string args = "test ";
+    p.parse(args);
+    REQUIRE_NOTHROW(p.help());
+    REQUIRE_NOTHROW(p.print());
+  }
+
   SECTION("Params Set") {
     auto        p    = green::params::params("DESCR");
     std::string args = "test";
