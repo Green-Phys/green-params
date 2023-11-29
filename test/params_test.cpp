@@ -231,4 +231,21 @@ TEST_CASE("Params") {
     REQUIRE(int(p["A"]) == 1);
     REQUIRE(int(p["K"]) == 10);
   }
+
+  SECTION("Params Set") {
+    auto        p    = green::params::params("DESCR");
+    std::string args = "test";
+    p.define<int>("X,XXX,ZZZ", "value 1", 1);
+    p.define<int>("Y,YYY,WWW", "value 2", 2);
+    p.define<int>("A", "value 3", 3);
+    p.define<int>("K", "value 4", 10);
+    REQUIRE(p.params_set().size() == 4);
+    p.parse(args);
+    p.define<int>("X,XXX,QQQ", "redefined X");
+    REQUIRE(p.params_set().size() == 4);
+    p.parse(args);
+    p.define<int>("A,B", "redefined A");
+    p.define<int>("C", "define C");
+    REQUIRE(p.params_set().size() == 5);
+  }
 }

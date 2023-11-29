@@ -12,6 +12,7 @@
 #include <iostream>
 #include <memory>
 #include <typeindex>
+#include <unordered_set>
 
 #include "common.h"
 #include "except.h"
@@ -84,32 +85,33 @@ namespace green::params {
      * Update entry stored value
      * @param new_value - new value to be stored
      */
-    void             update_entry(const std::string& new_value) { entry_->updata_value(new_value); }
+    void                           update_entry(const std::string& new_value) { entry_->updata_value(new_value); }
 
     /**
      * Check if the value has been set in command line parameters
      *
      * @return true if the value has been set by user
      */
-    bool             is_set() const { return entry_->is_set(); }
+    bool                           is_set() const { return entry_->is_set(); }
 
     /**
      * @return true if parameter has default value
      */
-    bool             is_optional() const { return optional_; };
+    bool                           is_optional() const { return optional_; };
 
     /**
      * @return type_index this param_item has been defined with
      */
-    std::type_index  argument_type() const { return argument_type_; }
+    [[nodiscard]] std::type_index  argument_type() const { return argument_type_; }
 
     /**
      * @return pointer to argument parser entry
      */
-    argparse::Entry* entry() const { return entry_; }
+    [[nodiscard]] argparse::Entry* entry() const { return entry_; }
 
   private:
     std::string                name_;
+    std::vector<std::string>   aka_;
     argparse::Entry*           entry_;
     std::type_index            argument_type_;
     std::optional<std::string> default_value_;
@@ -164,6 +166,7 @@ namespace green::params {
         parameters_map_[curr_name] = ptr;
         if (redefinied) args_.update_definition(curr_name, entry);
       }
+      params_set_.insert(ptr);
     }
 
     /**
@@ -269,11 +272,14 @@ namespace green::params {
       args_.help();
     }
 
+    [[nodiscard]] const std::unordered_set<std::shared_ptr<params_item>> & params_set() const { return params_set_;}
+
   private:
     bool                                                          parsed_;
     bool                                                          built_;
     argparse::Args                                                args_;
     std::unordered_map<std::string, std::shared_ptr<params_item>> parameters_map_;
+    std::unordered_set<std::shared_ptr<params_item>>              params_set_;
     std::string                                                   description_;
     argparse::Entry*                                              inifile_;
 
@@ -296,7 +302,7 @@ namespace green::params {
         }
       } else if (inifile_->has_value() && !inifile_->string_value().value().empty()) {
         throw params_inifile_error("First positional argument should be a name of a valid parameter INI file. " +
-                                   inifile_->string_value().value());
+                                                                                     inifile_->string_value().value());
       }
       built_ = true;
       return false;
