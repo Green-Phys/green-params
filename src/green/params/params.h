@@ -47,8 +47,8 @@ namespace green::params {
     params_item(const std::string& name, argparse::Entry* entry, std::type_index argument_type) :
         entry_(entry), argument_type_(argument_type), optional_(false) {
       std::vector<std::string> names = argparse::split(name);
-      name_ = names[0];
-      aka_.insert(aka_.begin(), names.begin()+1, names.end());
+      name_                          = names[0];
+      aka_.insert(aka_.begin(), names.begin() + 1, names.end());
       if (entry->has_value()) {
         optional_ = true;
       }
@@ -85,14 +85,14 @@ namespace green::params {
      * Update entry stored value
      * @param new_value - new value to be stored
      */
-    void                             update_entry(const std::string& new_value) { entry_->update_value(new_value); }
+    void                                          update_entry(const std::string& new_value) { entry_->update_value(new_value); }
 
     /**
      * Check if the value has been set in command line parameters
      *
      * @return true if the value has been set by user
      */
-    [[nodiscard]] bool               is_set() const { return entry_->is_set(); }
+    [[nodiscard]] bool                            is_set() const { return entry_->is_set(); }
 
     /**
      * \brief Return a primary name of the parameter
@@ -115,7 +115,7 @@ namespace green::params {
     /**
      * @return true if parameter has default value
      */
-    [[nodiscard]] bool               is_optional() const { return optional_; };
+    [[nodiscard]] bool                            is_optional() const { return optional_; };
 
     /**
      * @return type_index this param_item has been defined with
@@ -162,7 +162,7 @@ namespace green::params {
      */
     template <typename T>
     void define(const std::string& name, const std::string& descr, const std::optional<T>& default_value = std::nullopt) {
-      if(name.empty()) {
+      if (name.empty()) {
         throw params_empty_name_error("Can not define parameter with an empty name");
       }
       built_                              = false;

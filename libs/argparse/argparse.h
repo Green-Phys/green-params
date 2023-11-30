@@ -385,7 +385,7 @@ namespace argparse {
           !allowed_entries.empty() ? "allowed: <" + allowed_entries.substr(0, allowed_entries.size() - 2) + ">, " : "";
       return " [" + allowed_value + implicit_value + default_value + "]";
     }
-
+  public:
     [[nodiscard]] std::string print() const { return datap->get_string_value(value_.value_or("null")); }
 
     friend class Args;
