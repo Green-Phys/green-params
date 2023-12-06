@@ -225,7 +225,7 @@ namespace green::params {
      * @param param_name - name of the parameter to return
      * @return const reference to the parameter with specific name
      */
-    params_item& operator[](const std::string& param_name) {
+    params_item&       operator[](const std::string& param_name) {
 #ifndef NDEBUG
       if (!parsed_) throw params_notparsed_error("Parameters has to be parsed before access.");
 #endif

@@ -298,5 +298,7 @@ TEST_CASE("Params") {
     REQUIRE(p["X"].as<int>() == 1);
     p["X"] = 15;
     REQUIRE(p["X"].as<std::string>() == "15");
+    p["X"] = "22"s;
+    REQUIRE(p["X"].as<int>() == 22);
   }
 }
