@@ -289,4 +289,14 @@ TEST_CASE("Params") {
     std::string args = "test";
     REQUIRE_THROWS_AS(p.define<int>("", "value 1", 1), green::params::params_empty_name_error);
   }
+
+  SECTION("Param Assign Value and Conversion") {
+    auto        p    = green::params::params("DESCR");
+    std::string args = "test";
+    p.define<int>("X,XXX,ZZZ", "value 1", 1);
+    p.parse(args);
+    REQUIRE(p["X"].as<int>() == 1);
+    p["X"] = 15;
+    REQUIRE(p["X"].as<std::string>() == "15");
+  }
 }

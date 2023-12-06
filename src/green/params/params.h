@@ -82,6 +82,28 @@ namespace green::params {
     }
 
     /**
+     * \brief Explicit cast to a type T
+     * \tparam T type of return value
+     * \return return a representation of a parameter in type T
+     */
+    template <typename T>
+    T as() const {
+      return T(*this);
+    }
+
+    /**
+     * \brief Assign a value to parameter item
+     * \tparam T - type of a value
+     * \param value - to be assigned
+     * \return current parameter item
+     */
+    template <typename T>
+    params_item& operator=(const T& value) {
+      entry_->update_value(argparse::toString(value));
+      return *this;
+    }
+
+    /**
      * Update entry stored value
      * @param new_value - new value to be stored
      */
@@ -203,7 +225,7 @@ namespace green::params {
      * @param param_name - name of the parameter to return
      * @return const reference to the parameter with specific name
      */
-    const params_item& operator[](const std::string& param_name) {
+    params_item& operator[](const std::string& param_name) {
 #ifndef NDEBUG
       if (!parsed_) throw params_notparsed_error("Parameters has to be parsed before access.");
 #endif
@@ -211,7 +233,7 @@ namespace green::params {
       if (parameters_map_.count(param_name) <= 0) {
         throw params_notfound_error("Parameter " + param_name + " is not found.");
       }
-      const params_item& item = *parameters_map_.at(param_name).get();
+      params_item& item = *parameters_map_.at(param_name).get();
       if (!item.is_optional() && !item.is_set()) {
         throw params_value_error("Accessing non-optional parameter " + param_name + " with no value set.");
       }
