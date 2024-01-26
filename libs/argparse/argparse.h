@@ -76,12 +76,14 @@ namespace argparse {
     return input_str;  // no bold for windows
   }
 
-  template <typename T> std::string to_upper(const T& str_);
+  template <typename T>
+  std::string to_upper(const T& str_);
 
   template <typename T>
   std::enable_if_t<std::is_enum<T>::value, std::string> toString(const T& v) {
     if constexpr (has_ostream_operator<T>::value) {
-      return static_cast<std::ostringstream&&>((std::ostringstream() << std::boolalpha << to_upper(std::string{magic_enum::enum_name<T>(v)})))
+      return static_cast<std::ostringstream&&>(
+                 (std::ostringstream() << std::boolalpha << to_upper(std::string{magic_enum::enum_name<T>(v)})))
           .str();  // https://github.com/stan-dev/math/issues/590#issuecomment-550122627
     } else {
       return "unknown";
@@ -102,10 +104,10 @@ namespace argparse {
   std::string toString(const std::vector<T>& v) {
     if constexpr (has_ostream_operator<T>::value) {
       std::string val;
-      if(v.size()>0) {
+      if (v.size() > 0) {
         val += toString(v[0]);
       }
-      for(int i = 1; i<v.size(); ++i) {
+      for(int i = 1; i < v.size(); ++i) {
         val += "," + toString(v[i]);
       }
       return val;
@@ -343,6 +345,12 @@ namespace argparse {
     }
 
     bool is_set() const { return is_set_by_user; }
+
+    bool has_error() const {return !error.empty();}
+
+    std::string get_error() const{return error;}
+
+    void clean_error() {error = "";}
 
   private:
     std::vector<std::string>     keys_;

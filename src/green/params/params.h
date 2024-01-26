@@ -107,7 +107,10 @@ namespace green::params {
      * Update entry stored value
      * @param new_value - new value to be stored
      */
-    void                                          update_entry(const std::string& new_value) { entry_->update_value(new_value); }
+    void update_entry(const std::string& new_value) {
+      entry_->clean_error();
+      entry_->update_value(new_value);
+    }
 
     /**
      * Check if the value has been set in command line parameters
@@ -132,7 +135,7 @@ namespace green::params {
      * \brief Non-const version of function `aka()`
      * \return list of all aliases of a current parameter
      */
-    [[nodiscard]] std::vector<std::string>& aka() { return aka_; }
+    [[nodiscard]] std::vector<std::string>&       aka() { return aka_; }
 
     /**
      * @return true if parameter has default value
@@ -142,12 +145,12 @@ namespace green::params {
     /**
      * @return type_index this param_item has been defined with
      */
-    [[nodiscard]] std::type_index    argument_type() const { return argument_type_; }
+    [[nodiscard]] std::type_index                 argument_type() const { return argument_type_; }
 
     /**
      * @return pointer to argument parser entry
      */
-    [[nodiscard]] argparse::Entry*   entry() const { return entry_; }
+    [[nodiscard]] argparse::Entry*                entry() const { return entry_; }
 
   private:
     std::string                name_;
@@ -190,6 +193,7 @@ namespace green::params {
       built_                              = false;
       auto [names, redefinied, old_entry] = check_redefiniton<T>(argparse::split(name));
       argparse::Entry* entry              = redefinied ? old_entry : &args_.kwarg_t<T>(name, descr);
+      entry->clean_error();
       if constexpr (internal::is_vector_v<T>) entry->multi_argument();
       if (default_value.has_value()) entry->set_default(default_value.value());
       std::shared_ptr<params_item> ptr;
@@ -217,7 +221,7 @@ namespace green::params {
     /**
      * @return the user firendly description of parameters dictionary
      */
-    std::string        description() const { return description_; }
+    std::string  description() const { return description_; }
 
     /**
      * Subscript operator to access parameter by name. Can be assigned to any type that can accomodate the parameter value.
@@ -225,7 +229,7 @@ namespace green::params {
      * @param param_name - name of the parameter to return
      * @return const reference to the parameter with specific name
      */
-    params_item&       operator[](const std::string& param_name) {
+    params_item& operator[](const std::string& param_name) {
 #ifndef NDEBUG
       if (!parsed_) throw params_notparsed_error("Parameters has to be parsed before access.");
 #endif
@@ -234,8 +238,11 @@ namespace green::params {
         throw params_notfound_error("Parameter " + param_name + " is not found.");
       }
       params_item& item = *parameters_map_.at(param_name).get();
-      if (!item.is_optional() && !item.is_set()) {
-        throw params_value_error("Accessing non-optional parameter " + param_name + " with no value set.");
+      if (!item.is_optional() && !item.is_set() || item.entry()->has_error()) {
+        if (item.entry()->has_error()) {
+          throw params_value_error("Accessing incorrectly filled parameter '" + param_name + "'\n" + item.entry()->get_error());
+        }
+        throw params_value_error("Accessing non-optional parameter '" + param_name + "' with no value set.");
       }
       return item;
     }
