@@ -261,7 +261,10 @@ namespace green::params {
         throw params_notfound_error("Parameter " + param_name + " is not found.");
       }
       const params_item& item = *parameters_map_.at(param_name).get();
-      if (!item.is_optional() && !item.is_set()) {
+      if (!item.is_optional() && !item.is_set() || item.entry()->has_error()) {
+        if (item.entry()->has_error()) {
+          throw params_value_error("Accessing incorrectly filled parameter '" + param_name + "'\n" + item.entry()->get_error());
+        }
         throw params_value_error("Accessing non-optional parameter " + param_name + " with no value set.");
       }
       return item;
