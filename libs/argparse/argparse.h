@@ -76,8 +76,20 @@ namespace argparse {
     return input_str;  // no bold for windows
   }
 
+  template <typename T> std::string to_upper(const T& str_);
+
   template <typename T>
-  std::string toString(const T& v) {
+  std::enable_if_t<std::is_enum<T>::value, std::string> toString(const T& v) {
+    if constexpr (has_ostream_operator<T>::value) {
+      return static_cast<std::ostringstream&&>((std::ostringstream() << std::boolalpha << to_upper(std::string{magic_enum::enum_name<T>(v)})))
+          .str();  // https://github.com/stan-dev/math/issues/590#issuecomment-550122627
+    } else {
+      return "unknown";
+    }
+  }
+
+  template <typename T>
+  std::enable_if_t<!std::is_enum<T>::value, std::string> toString(const T& v) {
     if constexpr (has_ostream_operator<T>::value) {
       return static_cast<std::ostringstream&&>((std::ostringstream() << std::boolalpha << v))
           .str();  // https://github.com/stan-dev/math/issues/590#issuecomment-550122627
@@ -91,12 +103,10 @@ namespace argparse {
     if constexpr (has_ostream_operator<T>::value) {
       std::string val;
       if(v.size()>0) {
-        val += static_cast<std::ostringstream&&>((std::ostringstream() << std::boolalpha << v[0]))
-                   .str();
+        val += toString(v[0]);
       }
       for(int i = 1; i<v.size(); ++i) {
-        val += "," + static_cast<std::ostringstream&&>((std::ostringstream() << std::boolalpha << v[i]))
-                   .str();
+        val += "," + toString(v[i]);
       }
       return val;
     } else {

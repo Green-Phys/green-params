@@ -301,4 +301,12 @@ TEST_CASE("Params") {
     p["X"] = "22"s;
     REQUIRE(p["X"].as<int>() == 22);
   }
+  SECTION("Vector of Enums") {
+    auto        p    = green::params::params("DESCR");
+    std::string args  = "test --a YELLOW,GREEN";
+    p.define<std::vector<myenum>>("a", "Vector of enums", std::vector{BLACK});
+    p.parse(args);
+    std::vector<myenum> a = p["a"];
+    REQUIRE(a.size() == 2);
+  }
 }
