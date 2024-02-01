@@ -3,6 +3,14 @@ project(green-params CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
+execute_process(
+        COMMAND git log -1 --format=%h
+        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+        OUTPUT_VARIABLE TMP_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+list(APPEND GIT_HASH ${TMP_HASH})
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 add_subdirectory(src)
