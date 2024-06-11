@@ -103,6 +103,26 @@ TEST_CASE("Params") {
     REQUIRE_THROWS_AS(p["a"], green::params::params_value_error);
   }
 
+  SECTION("Argument is set") {
+    auto        p    = green::params::params("DESCR");
+    std::string inifile = TEST_PATH + "/test.ini"s;
+    std::string args = "test --c 3 --d 5 " + inifile;
+    p.define<int>("a", "value");
+    p.define<int>("AA", "value");
+    p.define<int>("AAA.AA", "value", 5);
+    p.define<int>("b", "value", 1);
+    p.define<int>("c", "value");
+    p.define<int>("d", "value", 1);
+    p.parse(args);
+    REQUIRE(!p.is_set("a"));
+    REQUIRE(!p.is_set("b"));
+    REQUIRE(!p.is_set("XXX"));
+    REQUIRE(p.is_set("c"));
+    REQUIRE(p.is_set("d"));
+    REQUIRE(p.is_set("AA"));
+    REQUIRE(p.is_set("AAA.AA"));
+  }
+
   SECTION("Redefine Parameters from File") {
     auto        p       = green::params::params("DESCR");
     std::string inifile = TEST_PATH + "/test.ini"s;

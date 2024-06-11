@@ -271,6 +271,20 @@ namespace green::params {
     }
 
     /**
+     * Check if parameter value is set
+     *
+     * @param param_name name of the parameter
+     * @return true if the value has been set by user either in command line or in parameter file, false otherwise or if parameter does
+     * not exist.
+     */
+    [[nodiscard]] bool is_set(const std::string& param_name) const {
+      if (parameters_map_.count(param_name) <= 0) {
+        return false;
+      }
+      return parameters_map_.at(param_name).get()->is_set();
+    }
+
+    /**
      * Parse command line arguments represented as a string. As usual, the first parameter should be program name.
      * @param s - string with command line arguments
      * @return false if help requested, true otherwise
