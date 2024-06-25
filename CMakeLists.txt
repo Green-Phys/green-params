@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.18)
 project(params CXX)
 
+################ GREEN RELEASE VERSION #####################
+set(GREEN_RELEASE origin/main)
+
 set(CMAKE_CXX_STANDARD 17)
 
 execute_process(
