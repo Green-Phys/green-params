@@ -173,7 +173,8 @@ namespace green::params {
      *
      * @param description - name of the parameters (used for printing)
      */
-    params(const std::string& description = "") : parsed_(false), built_(false), description_(description), inifile_(nullptr) {
+    params(const std::string& description = "", const std::string& version = "")
+        : parsed_(false), built_(false), description_(description), version_(version), inifile_(nullptr) {
       inifile_ = &args_.arg_t<std::string>("Parameters INI File").set_default("");
     }
 
@@ -189,6 +190,10 @@ namespace green::params {
     void define(const std::string& name, const std::string& descr, const std::optional<T>& default_value = std::nullopt) {
       if (name.empty()) {
         throw params_empty_name_error("Can not define parameter with an empty name");
+      }
+      for (const std::string& n : argparse::split(name)) {
+        if (n == "help" || n == "?" || n == "version")
+          throw params_reserved_name_error("Parameter name '" + n + "' is reserved for a built-in flag (--help/--version)");
       }
       built_                              = false;
       auto [names, redefinied, old_entry] = check_redefiniton<T>(argparse::split(name));
@@ -222,6 +227,21 @@ namespace green::params {
      * @return the user firendly description of parameters dictionary
      */
     std::string  description() const { return description_; }
+
+    /**
+     * @return the release version string reported by the `--version` flag
+     */
+    std::string  version() const { return version_; }
+
+    /**
+     * @return true if --help was passed on the command line. Meaningful after parse()/build().
+     */
+    bool         help_requested() const { return args_.help_requested(); }
+
+    /**
+     * @return true if --version was passed on the command line. Meaningful after parse()/build().
+     */
+    bool         version_requested() const { return args_.version_requested(); }
 
     /**
      * Subscript operator to access parameter by name. Can be assigned to any type that can accomodate the parameter value.
@@ -287,7 +307,8 @@ namespace green::params {
     /**
      * Parse command line arguments represented as a string. As usual, the first parameter should be program name.
      * @param s - string with command line arguments
-     * @return false if help requested, true otherwise
+     * @return false if the caller should stop — an informational flag (--help/--version) was
+     *         requested, or arguments were supplied before any parameters were defined; true otherwise
      */
     bool parse(const std::string& s) {
       std::string to_parse = s;
@@ -300,15 +321,16 @@ namespace green::params {
      *
      * @param argc - number of command line arguments
      * @param argv - values of command line arguments
-     * @return false if help requested, true otherwise
+     * @return false if the caller should stop — an informational flag (--help/--version) was
+     *         requested, or arguments were supplied before any parameters were defined; true otherwise
      */
     bool parse(int argc, char* argv[]) {
       args_.parse(argc, argv, false);
       parsed_ = true;
       if (parameters_map_.empty() && argc > 2)
         return false;  // we provided command line parameters but haven't defined any them yet
-      bool help_requested = build();
-      return !help_requested;
+      build();
+      return !help_requested() && !version_requested();
     }
 
     /**
@@ -326,6 +348,7 @@ namespace green::params {
 #endif
       if (!built_) build();
       std::cout << description_ << std::endl;
+      if (!version_.empty()) std::cout << "Version: " << version_ << std::endl;
       args_.print();
     }
 
@@ -338,7 +361,21 @@ namespace green::params {
 #endif
       if (!built_) build();
       std::cout << description_ << std::endl;
+      if (!version_.empty()) std::cout << "Version: " << version_ << std::endl;
       args_.help();
+    }
+
+    /**
+     * Print the informational message that made parse() return false: the release string for
+     * --version, otherwise the help text. Call this on the rank that owns console output. Future
+     * informational flags should be handled here so callers can stay agnostic to the specific flag.
+     */
+    void help_or_version() {
+      if (version_requested()) {
+        std::cout << version_ << std::endl;
+        return;
+      }
+      help();
     }
 
     [[nodiscard]] const std::unordered_set<std::shared_ptr<params_item>>& params_set() const { return params_set_; }
@@ -351,10 +388,13 @@ namespace green::params {
     std::unordered_set<std::shared_ptr<params_item>>              params_set_;
     std::string                                                   description_;
     argparse::Entry*                                              inifile_;
+    std::string                                                   version_      = "";
 
     inline bool                                                   build_internal() {
-      bool help_requested = args_.build(false);
-      if (help_requested) return true;
+      bool info = args_.build(false);  // true on --help or --version
+      // Short-circuit before INI handling so informational flags are honored regardless of other
+      // (possibly invalid) arguments.
+      if (info) return true;
       if (inifile_->has_value() && !inifile_->string_value().value().empty() &&
           std::filesystem::exists(inifile_->string_value().value())) {
         INI::File ft;

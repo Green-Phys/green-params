@@ -53,6 +53,11 @@ namespace green::params {
   public:
     explicit params_empty_name_error(const std::string& string) : runtime_error(string) {}
   };
+
+  class params_reserved_name_error : public std::runtime_error {
+  public:
+    explicit params_reserved_name_error(const std::string& string) : runtime_error(string) {}
+  };
 }  // namespace green::params
 
 #endif  // GREEN_PARAMS_EXCEPT_H
