@@ -6,6 +6,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <sstream>
+
 using namespace std::string_literals;
 
 enum myenum { GREEN, BLACK, YELLOW };
@@ -14,6 +16,49 @@ TEST_CASE("Params") {
   SECTION("Test Init") {
     auto p = green::params::params("DESCR");
     REQUIRE(p.description() == "DESCR");
+  }
+
+  SECTION("Version string from constructor") {
+    auto p_default = green::params::params("DESCR");
+    REQUIRE(p_default.version().empty());
+    auto p = green::params::params("DESCR", "v1.2.3");
+    REQUIRE(p.version() == "v1.2.3");
+  }
+
+  SECTION("Version flag is reported as a stop signal") {
+    auto p = green::params::params("DESCR", "v1.2.3");
+    REQUIRE_FALSE(p.parse("test --version"s));  // false => caller should stop
+    REQUIRE(p.version_requested());
+    REQUIRE_FALSE(p.help_requested());
+
+    std::ostringstream out;
+    std::streambuf*    old = std::cout.rdbuf(out.rdbuf());
+    p.help_or_version();
+    std::cout.rdbuf(old);
+    REQUIRE(out.str() == "v1.2.3\n");
+  }
+
+  SECTION("Help flag is reported as a stop signal, not version") {
+    auto p = green::params::params("DESCR", "v1.2.3");
+    REQUIRE_FALSE(p.parse("test --help"s));
+    REQUIRE(p.help_requested());
+    REQUIRE_FALSE(p.version_requested());
+  }
+
+  SECTION("Version flag works with parameters defined and extra args") {
+    auto p = green::params::params("DESCR", "v1.2.3");
+    p.define<int>("alpha", "an integer parameter", 0);
+    REQUIRE_FALSE(p.parse("test --alpha 5 --version"s));
+    REQUIRE(p.version_requested());
+  }
+
+  SECTION("Reserved flag names cannot be defined as parameters") {
+    auto p = green::params::params("DESCR", "v1.2.3");
+    REQUIRE_THROWS_AS(p.define<int>("version", "collides with built-in"), green::params::params_reserved_name_error);
+    REQUIRE_THROWS_AS(p.define<int>("help", "collides with built-in"), green::params::params_reserved_name_error);
+    REQUIRE_THROWS_AS(p.define<int>("?", "collides with built-in"), green::params::params_reserved_name_error);
+    // a reserved name as an alias in a comma-separated definition is also rejected
+    REQUIRE_THROWS_AS(p.define<int>("vsn,version", "collides via alias"), green::params::params_reserved_name_error);
   }
 
   SECTION("String parser") {
@@ -336,5 +381,23 @@ TEST_CASE("Params") {
     p.parse(args);
     std::vector<myenum> a;
     REQUIRE_THROWS_AS(a = p["a"], green::params::params_value_error);
+  }
+
+  SECTION("print emits Version line when set, omits when empty") {
+    auto p = green::params::params("DESCR", "v1.2.3");
+    p.parse("test"s);
+    std::ostringstream out;
+    std::streambuf*    old = std::cout.rdbuf(out.rdbuf());
+    p.print();
+    std::cout.rdbuf(old);
+    REQUIRE(out.str().find("Version: v1.2.3") != std::string::npos);
+
+    auto p_empty = green::params::params("DESCR");
+    p_empty.parse("test"s);
+    std::ostringstream out2;
+    old = std::cout.rdbuf(out2.rdbuf());
+    p_empty.print();
+    std::cout.rdbuf(old);
+    REQUIRE(out2.str().find("Version:") == std::string::npos);
   }
 }

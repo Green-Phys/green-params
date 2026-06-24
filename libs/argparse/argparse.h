@@ -440,10 +440,14 @@ namespace argparse {
     std::vector<std::shared_ptr<Entry>>                     arg_entries;
     std::map<std::string, std::shared_ptr<SubcommandEntry>> subcommand_entries;
     bool&                                                   _help = flag("?,help", "print help");
+    bool&                                                   _version = flag("version", "print version");
 
   public:
     std::string program_name;
     bool        is_valid = false;
+
+    bool        help_requested() const { return _help; }
+    bool        version_requested() const { return _version; }
 
     virtual ~Args()      = default;
 
@@ -693,8 +697,7 @@ namespace argparse {
         }
       }
 
-      if (_help) {
-        // help();
+      if (_help || _version) {
         return true;
       }
 
