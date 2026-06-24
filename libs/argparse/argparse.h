@@ -698,7 +698,6 @@ namespace argparse {
       }
 
       if (_help || _version) {
-        // help();
         return true;
       }
 
